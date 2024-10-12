@@ -237,14 +237,132 @@ BlocConsumer<BlocA, BlocAState>(
 )
 ```
 
+### context.read
+- 타입을 listen하거나 타입을 따르는 객체가 변했을 때, 위젯을 리빌드하는 역할이 아니다.(=> BlocBuilder나 context.watch 사용)
+- bloc 객체를 얻는데 사용
+- 위젯 build 함수 내에 작성하는 것 지양
+```dart
+/// Do Not
+@override
+Widget build(Context context) {
+  final state = context.read<MyBloc>().state;
+  return Text('$state'); // Text가 리빌드 되지 않아 에러 발생
+}
+
+/// Do
+void onPressed() {
+  context.read<CounterBloc>().add(CounterIncrementPressed());
+}
+
+```
+
+### context.watch
+- 객체 변화 감지하고 위젯 리빌드함
+- BlocProvider.of<T>(context, listen: true)랑 기능 동일
+- StatelessWidget 혹은 State 클래스 내 build() 에서 접근 가능
+- root Widget에 정의하게 되면 상태가 변할 때마다 모든 위젯을 리빌드하게 됨
+
+```dart
+// Avoid: 부모 위젯에서 사용하지 말 것
+@override
+Widget build(Context context) {
+  // 아무리 상태가 변화해도 MaterialApp이 리빌드 될 뿐, Text위젯이 리빌드 되지 않는다.
+  final state = context.watch<MyBloc>().state;
+  return MaterialApp(
+    home: Scaffold(body: Text(state.value),
+    )
+  );
+}
+
+// Do: 명시적으로 리빌드할 범위를 보여주고 싶으면 BlocBuilder를 권장
+@override
+Widget build(Context context) {
+  return MaterialApp(
+      home: Scaffold(
+          body: BlocBuilder<MyBloc, MyState>(
+              builder: (context, state) {
+                return Text(state.value);
+              }
+          )
+      )
+  );
+}
+
+// Do: watch를 사용할거면 Builder 아래에 사용
+@override
+Widget build(Context context) {
+  return MaterialApp(
+      home: Scaffold(
+          body: Builder(
+              builder: (context) {
+                final state = context.watch<MyBloc>().state;
+                return Text(state.value);
+              }
+          )
+      )
+  );
+}
+
+// Do: MultiBlocBuilder 대신 context.watch를 사용할 수 있다.
+Builder(
+    builder: (context) {
+      final stateA = context.watch<BlocA>().state;
+      final stateB = context.watch<BlocB>().state;
+      final stateC = context.watch<BlocC>().state;
+      
+      return Text(${stateA.value}, ${stateB.value}, ${stateC.value});
+  }
+);
+
+```
 
 
+### context.select
+- watch랑 read랑 다르게, 상태의 작은 파트(객체 속성 등)을 감지할 수 있음
+```dart
+// Avoid: 부모 위젯에 정의하게 되면, 자식 위젯에서 변화를 감지 못 받음
+@override
+Widget build(Context context) {
+  final name = context.select((ProfileBloc bloc) => bloc.state.name);
+  return MaterialApp(
+    home: Scaffold(
+      body: Text(name),
+    )
+  );
+}
+
+// Do: BlocSelector 를 대신 사용할 수도 있음
+@override
+Widget build(Context context) {
+  return MaterialApp(
+      home: Scaffold(
+        body: BlocSelector<ProfileBloc, ProfileState, String>(
+          selector: (state) => state.name,
+          bulider: (context, name) {
+            return Text(name);
+          }
+        ),
+      )
+  );
+}
+
+// Do: Builder내에 context.selector를 정의해라
+@override
+Widget build(Context context) {
+  return MaterialApp(
+      home: Scaffold(
+        body: Builder(
+          builder: (context) {
+            final name = context.select((ProfileBloc bloc) => bloc.state.name);
+            return Text(name);
+          }
+        )
+      )
+  );
+}
 
 
-
-
-
-
+```
 
 
 
