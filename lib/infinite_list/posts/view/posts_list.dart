@@ -31,6 +31,10 @@ class _PostsListState extends State<PostsList> {
   Widget build(BuildContext context) {
     return BlocBuilder<PostBloc, PostState>(builder: (context, state) {
       switch (state.status) {
+        case PostStatus.initial:
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
         case PostStatus.success:
           if (state.posts.isEmpty) {
             return const Center(
@@ -41,12 +45,8 @@ class _PostsListState extends State<PostsList> {
               controller: _scrollController,
               itemCount: state.hasReachedMax ? state.posts.length : state.posts.length + 1,
               itemBuilder: (context, index) {
-                return index >= state.posts.length ?
-                    const BottomLoader() :
-                    PostListItem(post: state.posts[index]);
+                return index >= state.posts.length ? const BottomLoader() : PostListItem(post: state.posts[index]);
               });
-        case PostStatus.initial:
-          return const Center(child: CircularProgressIndicator(),);
         case PostStatus.failure:
           return const Center(
             child: Text('failed to fetch posts'),
